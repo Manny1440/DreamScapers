@@ -5,11 +5,12 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // Injects the API key from the environment into the client-side bundle
+    // This allows process.env.API_KEY to work in the bundled browser code
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
   },
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         main: './index.html',
@@ -18,5 +19,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-  },
+    open: true
+  }
 });
