@@ -1,0 +1,6 @@
+
+{
+  "name": "DreamScapers",
+  "description": "Professional AI-powered backyard visualization for landscapers and gardeners.",
+  "requestFramePermissions": ["camera"]
+}
