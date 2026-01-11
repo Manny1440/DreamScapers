@@ -2,8 +2,8 @@ import React from 'react';
 import { Sprout, Star, ArrowRight } from 'lucide-react';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
 
-// input_file_1.png is the messy yard (Before)
-// input_file_0.png is the clean construction (After)
+// input_file_1.png: Messy yard with trampoline (Before)
+// input_file_0.png: Clean yard with pavers and firepit (After)
 const DEFAULT_BEFORE = "input_file_1.png";
 const DEFAULT_AFTER = "input_file_0.png";
 
