@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { MoveHorizontal } from 'lucide-react';
+import { MoveHorizontal, ImageOff } from 'lucide-react';
 
 interface BeforeAfterSliderProps {
   beforeImage: string;
@@ -9,11 +9,12 @@ interface BeforeAfterSliderProps {
 export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ beforeImage, afterImage }) => {
   const [position, setPosition] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
+  const [errors, setErrors] = useState<{before?: boolean, after?: boolean}>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Ensure paths are handled correctly as relative to the root
-  const cleanBefore = beforeImage.startsWith('http') ? beforeImage : `./${beforeImage}`;
-  const cleanAfter = afterImage.startsWith('http') ? afterImage : `./${afterImage}`;
+  // Use the raw filename if it doesn't look like a URL
+  const srcBefore = beforeImage.includes('/') || beforeImage.startsWith('data:') ? beforeImage : beforeImage;
+  const srcAfter = afterImage.includes('/') || afterImage.startsWith('data:') ? afterImage : afterImage;
 
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -62,6 +63,14 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ beforeImag
     };
   }, [isResizing, handleMove]);
 
+  const ImageError = ({ label }: { label: string }) => (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 p-4 text-center">
+      <ImageOff size={48} className="mb-2 opacity-20" />
+      <p className="text-sm font-bold">Could not load {label} image</p>
+      <p className="text-[10px]">Verify file exists at root</p>
+    </div>
+  );
+
   return (
     <div 
       ref={containerRef}
@@ -69,44 +78,48 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ beforeImag
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      {/* After Image (The background) */}
-      <img 
-        src={cleanAfter} 
-        alt="After transformation"
-        loading="eager"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-      />
-
-      {/* Before Image (The overlay with clipping) */}
-      <div 
-        className="absolute inset-0 w-full h-full pointer-events-none transition-none"
-        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
-      >
+      {/* After Image */}
+      {errors.after ? <ImageError label="AFTER" /> : (
         <img 
-          src={cleanBefore} 
-          alt="Before transformation"
+          src={srcAfter} 
+          alt="After"
           loading="eager"
+          onError={() => setErrors(prev => ({...prev, after: true}))}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
+      )}
+
+      {/* Before Image with Clipping */}
+      <div 
+        className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+      >
+        {errors.before ? <ImageError label="BEFORE" /> : (
+          <img 
+            src={srcBefore} 
+            alt="Before"
+            loading="eager"
+            onError={() => setErrors(prev => ({...prev, before: true}))}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+        )}
       </div>
 
-      {/* Slider Line */}
+      {/* Divider Line */}
       <div 
         className="absolute top-0 bottom-0 z-20 w-1 bg-white shadow-[0_0_15px_rgba(0,0,0,0.3)] pointer-events-none"
         style={{ left: `${position}%` }}
       >
-        {/* Handle Button */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-emerald-600 border-4 border-emerald-50 pointer-events-auto transition-transform hover:scale-110 active:scale-95 group-hover:bg-emerald-50">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-emerald-600 border-4 border-emerald-50 pointer-events-auto transition-transform hover:scale-110 active:scale-95">
           <MoveHorizontal size={24} strokeWidth={3} />
         </div>
       </div>
 
-      {/* Dynamic Labels */}
-      <div className={`absolute top-6 left-6 z-10 bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest transition-opacity duration-300 pointer-events-none ${isResizing ? 'opacity-0' : 'opacity-100'}`}>
-        ORIGINAL CONDITION
+      <div className={`absolute top-6 left-6 z-30 bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest transition-opacity pointer-events-none ${isResizing ? 'opacity-0' : 'opacity-100'}`}>
+        BEFORE
       </div>
-      <div className={`absolute top-6 right-6 z-10 bg-emerald-600/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest transition-opacity duration-300 pointer-events-none ${isResizing ? 'opacity-0' : 'opacity-100'}`}>
-        PROPOSED DESIGN
+      <div className={`absolute top-6 right-6 z-30 bg-emerald-600/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest transition-opacity pointer-events-none ${isResizing ? 'opacity-0' : 'opacity-100'}`}>
+        AFTER
       </div>
     </div>
   );
