@@ -1,21 +1,61 @@
-
 import React, { useState, useEffect } from 'react';
-import { AppState, UserInput, GeneratedResult, LandscapingStyle, User } from './types';
+import {
+  AppState,
+  UserInput,
+  GeneratedResult,
+  LandscapingStyle,
+  User
+} from './types';
+
 import { InputForm } from './components/InputForm';
-import { ComparisonSlider } from './components/ComparisonSlider';
+import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { LandingPage } from './components/LandingPage';
 import { BillingDashboard } from './components/BillingDashboard';
 import { AuthModal } from './components/AuthModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
+
 import { generateLandscapeVisualization } from './services/geminiService';
 import { createCheckoutSession } from './services/stripeService';
-import { Sprout, RefreshCw, ArrowLeft, Download, AlertTriangle, LogOut, CreditCard } from 'lucide-react';
+
+import {
+  Sprout,
+  RefreshCw,
+  ArrowLeft,
+  Download,
+  AlertTriangle,
+  LogOut,
+  CreditCard
+} from 'lucide-react';
 
 const STYLES_MAP: Record<string, LandscapingStyle> = {
-  modern: { id: 'modern', name: 'Modern Minimalist', description: '', promptModifier: 'Modern minimalist style, clean geometric lines, concrete pavers, structured planting, neutral color palette, architectural lighting' },
-  tropical: { id: 'tropical', name: 'Tropical Resort', description: '', promptModifier: 'Tropical resort style, lush dense greenery, palm trees, wooden decking, vibrant flowers, relaxing atmosphere, balinese influence' },
-  rustic: { id: 'rustic', name: 'Rustic Cottage', description: '', promptModifier: 'Rustic cottage garden style, natural stone pathways, wildflowers, winding paths, cozy atmosphere, timber features, english garden influence' },
-  entertainment: { id: 'entertainment', name: 'Entertainer', description: '', promptModifier: 'Outdoor entertainment focus, large paved patio, built-in BBQ station, fire pit area, comfortable outdoor seating, open lawn for activities' },
+  modern: {
+    id: 'modern',
+    name: 'Modern Minimalist',
+    description: '',
+    promptModifier:
+      'Modern minimalist garden, clean geometry, concrete pavers, structured planting, neutral tones'
+  },
+  tropical: {
+    id: 'tropical',
+    name: 'Tropical Resort',
+    description: '',
+    promptModifier:
+      'Tropical resort garden, lush greenery, palms, timber decking, vibrant planting'
+  },
+  rustic: {
+    id: 'rustic',
+    name: 'Rustic Cottage',
+    description: '',
+    promptModifier:
+      'Rustic cottage garden, natural stone, wildflowers, winding paths, cozy atmosphere'
+  },
+  entertainment: {
+    id: 'entertainment',
+    name: 'Entertainer',
+    description: '',
+    promptModifier:
+      'Outdoor entertaining space, large patio, BBQ area, fire pit, seating zones'
+  }
 };
 
 function App() {
@@ -23,23 +63,24 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [userInput, setUserInput] = useState<UserInput>({ image: null, prompt: '', styleId: 'modern' });
-  const [result, setResult] = useState<GeneratedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isApiKeyReady, setIsApiKeyReady] = useState(false);
 
-  useEffect(() => {
-    // Fix: Check if an API key has already been selected on initialization
-    const checkKeyStatus = async () => {
-      if ((window as any).aistudio?.hasSelectedApiKey) {
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        setIsApiKeyReady(hasKey);
-      }
-    };
-    checkKeyStatus();
+  const [userInput, setUserInput] = useState<UserInput>({
+    image: null,
+    prompt: '',
+    styleId: 'modern'
+  });
 
+  const [result, setResult] = useState<GeneratedResult | null>(null);
+
+  useEffect(() => {
     const savedUser = localStorage.getItem('dreamscapers_user');
     if (savedUser) setUser(JSON.parse(savedUser));
+
+    if ((window as any).aistudio?.hasSelectedApiKey) {
+      (window as any).aistudio.hasSelectedApiKey().then(setIsApiKeyReady);
+    }
   }, []);
 
   const handleLaunchApp = () => {
@@ -62,9 +103,9 @@ function App() {
   const handleStartTrial = async () => {
     if (!user) return;
     await createCheckoutSession(user.email);
-    const updatedUser: User = { ...user, subscriptionStatus: 'TRIALING' };
-    setUser(updatedUser);
-    localStorage.setItem('dreamscapers_user', JSON.stringify(updatedUser));
+    const updated = { ...user, subscriptionStatus: 'TRIALING' };
+    setUser(updated);
+    localStorage.setItem('dreamscapers_user', JSON.stringify(updated));
     setAppState(AppState.INPUT);
   };
 
@@ -77,99 +118,155 @@ function App() {
 
   const handleSubmit = async () => {
     if (!userInput.image || !userInput.prompt) return;
+
     setAppState(AppState.PROCESSING);
     setError(null);
+
     try {
-      const selectedStyle = STYLES_MAP[userInput.styleId];
+      const style = STYLES_MAP[userInput.styleId];
       const generatedImage = await generateLandscapeVisualization(
         userInput.image,
         userInput.prompt,
-        selectedStyle.promptModifier
+        style.promptModifier
       );
-      setResult({ originalImage: userInput.image, generatedImage, promptUsed: userInput.prompt });
+
+      setResult({
+        originalImage: userInput.image,
+        generatedImage,
+        promptUsed: userInput.prompt
+      });
+
       setAppState(AppState.RESULT);
     } catch (e: any) {
-      // Fix: Handle specific "Requested entity was not found" error by prompting for API key selection again
-      if (e.message?.includes("Requested entity was not found")) {
-        setIsApiKeyReady(false);
-      }
-      setError(e.message || "Failed to generate visualization. Check your API key or connection.");
+      setError(e.message || 'Failed to generate design.');
       setAppState(AppState.INPUT);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-slate-900 bg-slate-50">
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onAuthSuccess={handleAuthSuccess} />
-      
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setAppState(AppState.LANDING)}>
-            <div className="bg-emerald-600 p-1.5 rounded-lg text-white"><Sprout size={24} /></div>
-            <span className="text-xl font-bold text-slate-800">DreamScapers</span>
-          </div>
-          <nav className="flex items-center gap-6">
-            <button onClick={() => setAppState(AppState.LANDING)} className="text-sm font-medium text-slate-600 hover:text-emerald-600 hidden md:block">Home</button>
-            {user ? (
-              <div className="relative">
-                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 p-1 pl-3 bg-slate-100 border border-slate-200 rounded-full">
-                  <span className="text-xs font-bold text-slate-600 hidden sm:block uppercase">{user.name.split(' ')[0]}</span>
-                  <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-xs">{user.name.charAt(0)}</div>
-                </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50">
-                    <button onClick={() => { setAppState(AppState.BILLING); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2"><CreditCard size={16} />Billing</button>
-                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><LogOut size={16} />Sign Out</button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={() => setShowAuthModal(true)} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-md">Sign In</button>
-            )}
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
 
-      {/* Fix: Modal displays if API key is required but not selected */}
-      {!isApiKeyReady && appState !== AppState.LANDING && appState !== AppState.BILLING && (
+      {!isApiKeyReady && appState !== AppState.LANDING && (
         <ApiKeyModal onKeySelected={() => setIsApiKeyReady(true)} />
       )}
 
-      <main className={`flex-grow flex flex-col ${appState === AppState.LANDING ? '' : 'p-4 md:p-8'}`}>
-        {appState === AppState.LANDING && <LandingPage onLaunchApp={handleLaunchApp} />}
-        {appState === AppState.BILLING && user && <BillingDashboard user={user} />}
+      <header className="bg-white border-b sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto h-16 px-4 flex justify-between items-center">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setAppState(AppState.LANDING)}
+          >
+            <div className="bg-emerald-600 p-1.5 rounded text-white">
+              <Sprout size={22} />
+            </div>
+            <span className="font-bold text-lg">DreamScapers</span>
+          </div>
+
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-full"
+              >
+                <span className="text-xs font-bold uppercase">
+                  {user.name.split(' ')[0]}
+                </span>
+                <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                  {user.name[0]}
+                </div>
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+                  <button
+                    className="w-full px-4 py-2 text-sm flex gap-2 hover:bg-slate-50"
+                    onClick={() => setAppState(AppState.BILLING)}
+                  >
+                    <CreditCard size={16} /> Billing
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-sm text-red-600 flex gap-2 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={16} /> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main className="flex-grow">
+        {appState === AppState.LANDING && (
+          <LandingPage onLaunchApp={handleLaunchApp} />
+        )}
+
         {appState === AppState.INPUT && (
-          <div className="animate-fade-in-up max-w-4xl mx-auto w-full">
-            <div className="mb-6">
-               <h2 className="text-2xl font-bold text-slate-800">Project Details</h2>
-               {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2"><AlertTriangle size={20} />{error}</div>}
-            </div>
-            <InputForm input={userInput} setInput={setUserInput} onSubmit={handleSubmit} />
-          </div>
-        )}
-        {appState === AppState.PROCESSING && (
-          <div className="flex-grow flex flex-col items-center justify-center text-center space-y-8 pt-20">
-            <div className="relative w-24 h-24">
-               <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
-               <Sprout className="absolute inset-0 m-auto text-emerald-600" size={32} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-800">Designing the Dream...</h3>
-          </div>
-        )}
-        {appState === AppState.RESULT && result && (
-          <div className="max-w-6xl mx-auto w-full animate-fade-in">
-            <div className="flex justify-between items-center mb-6">
-              <button onClick={() => setAppState(AppState.INPUT)} className="text-slate-500 hover:text-emerald-600 flex items-center gap-1 font-medium"><ArrowLeft size={16} /> Edit Details</button>
-              <div className="flex gap-3">
-                <button onClick={() => setAppState(AppState.INPUT)} className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2"><RefreshCw size={16} /> New</button>
-                <a href={result.generatedImage} download="landscape.png" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 shadow-md"><Download size={16} /> Download 2K</a>
+          <div className="max-w-4xl mx-auto p-6">
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded flex gap-2">
+                <AlertTriangle size={20} /> {error}
               </div>
-            </div>
-            <ComparisonSlider beforeImage={result.originalImage} afterImage={result.generatedImage} />
+            )}
+            <InputForm
+              input={userInput}
+              setInput={setUserInput}
+              onSubmit={handleSubmit}
+            />
           </div>
+        )}
+
+        {appState === AppState.PROCESSING && (
+          <div className="flex items-center justify-center h-96">
+            <div className="animate-spin border-4 border-emerald-500 border-t-transparent rounded-full w-16 h-16" />
+          </div>
+        )}
+
+        {appState === AppState.RESULT && result && (
+          <div className="max-w-6xl mx-auto p-6 space-y-6">
+            <div className="flex justify-between items-center">
+              <button
+                onClick={() => setAppState(AppState.INPUT)}
+                className="flex gap-1 text-slate-600 hover:text-emerald-600"
+              >
+                <ArrowLeft size={16} /> Edit
+              </button>
+
+              <a
+                href={result.generatedImage}
+                download="dreamscape.png"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex gap-2"
+              >
+                <Download size={16} /> Download
+              </a>
+            </div>
+
+            <BeforeAfterSlider
+              beforeImage={result.originalImage}
+              afterImage={result.generatedImage}
+            />
+          </div>
+        )}
+
+        {appState === AppState.BILLING && user && (
+          <BillingDashboard user={user} />
         )}
       </main>
     </div>
   );
 }
+
 export default App;
