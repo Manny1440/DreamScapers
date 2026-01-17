@@ -11,7 +11,6 @@ import InputForm from './components/InputForm';
 import LandingPage from './components/LandingPage';
 import BillingDashboard from './components/BillingDashboard';
 import AuthModal from './components/AuthModal';
-import ApiKeyModal from './components/ApiKeyModal';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 
 import { generateLandscapeVisualization } from './services/geminiService';
@@ -64,7 +63,6 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyReady, setIsApiKeyReady] = useState(false);
 
   const [userInput, setUserInput] = useState<UserInput>({
     image: null,
@@ -77,10 +75,6 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('dreamscapers_user');
     if (savedUser) setUser(JSON.parse(savedUser));
-
-    if ((window as any).aistudio?.hasSelectedApiKey) {
-      (window as any).aistudio.hasSelectedApiKey().then(setIsApiKeyReady);
-    }
   }, []);
 
   const handleLaunchApp = () => {
@@ -124,23 +118,23 @@ function App() {
 
     try {
       const style = STYLES_MAP[userInput.styleId];
+
       const generatedImage = await generateLandscapeVisualization(
-        userInput.image,
+        userInput.image as string, // base64
         userInput.prompt,
-        style.promptModifier
+        style.promptModifier,
+        user?.email || 'anonymous@dreamscapers.local'
       );
 
-      const originalUrl = URL.createObjectURL(userInput.image);
-
       setResult({
-        originalImage: originalUrl,
-        generatedImage,
+        originalImage: userInput.image as string, // base64
+        generatedImage, // data URL returned by server
         promptUsed: userInput.prompt
       });
 
       setAppState(AppState.RESULT);
     } catch (e: any) {
-      setError(e.message || 'Failed to generate design.');
+      setError(e?.message || 'Failed to generate design.');
       setAppState(AppState.INPUT);
     }
   };
@@ -152,10 +146,6 @@ function App() {
         onClose={() => setShowAuthModal(false)}
         onAuthSuccess={handleAuthSuccess}
       />
-
-      {!isApiKeyReady && appState !== AppState.LANDING && (
-        <ApiKeyModal onKeySelected={() => setIsApiKeyReady(true)} />
-      )}
 
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="max-w-6xl mx-auto h-16 px-4 flex justify-between items-center">
@@ -190,10 +180,14 @@ function App() {
                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
                   <button
                     className="w-full px-4 py-2 text-sm flex gap-2 hover:bg-slate-50"
-                    onClick={() => setAppState(AppState.BILLING)}
+                    onClick={() => {
+                      setAppState(AppState.BILLING);
+                      setShowUserMenu(false);
+                    }}
                   >
                     <CreditCard size={16} /> Billing
                   </button>
+
                   <button
                     className="w-full px-4 py-2 text-sm text-red-600 flex gap-2 hover:bg-red-50"
                     onClick={handleLogout}
@@ -250,13 +244,22 @@ function App() {
                 <ArrowLeft size={16} /> Edit
               </button>
 
-              <a
-                href={result.generatedImage}
-                download="dreamscape.png"
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex gap-2"
-              >
-                <Download size={16} /> Download
-              </a>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setAppState(AppState.INPUT)}
+                  className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2"
+                >
+                  <RefreshCw size={16} /> New
+                </button>
+
+                <a
+                  href={result.generatedImage}
+                  download="dreamscape.png"
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex gap-2 text-sm font-bold"
+                >
+                  <Download size={16} /> Download
+                </a>
+              </div>
             </div>
 
             <BeforeAfterSlider
@@ -275,3 +278,4 @@ function App() {
 }
 
 export default App;
+
