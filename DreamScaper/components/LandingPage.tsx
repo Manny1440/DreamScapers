@@ -2,16 +2,14 @@ import React from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 import BeforeAfterSlider from './BeforeAfterSlider';
 
-// Put these files in: DreamScaper/public/
-// Example:
-//   public/before.png
-//   public/after.png
-//
-// If your filenames are different, update the two constants below.
 const DEFAULT_BEFORE = '/before.png';
 const DEFAULT_AFTER = '/after.png';
 
-export const LandingPage: React.FC<{ onLaunchApp: () => void }> = ({ onLaunchApp }) => (
+interface LandingPageProps {
+  onLaunchApp: () => void;
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => (
   <div className="flex flex-col min-h-screen">
     <div className="bg-emerald-900 text-white text-xs font-bold py-2 text-center uppercase tracking-widest">
       🚀 LAUNCH PROMO: SIGN UP TODAY &amp; GET 30 DAYS FREE
@@ -47,3 +45,5 @@ export const LandingPage: React.FC<{ onLaunchApp: () => void }> = ({ onLaunchApp
     </section>
   </div>
 );
+
+export default LandingPage;
