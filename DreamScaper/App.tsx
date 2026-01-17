@@ -7,12 +7,12 @@ import {
   User
 } from './types';
 
-import { InputForm } from './components/InputForm';
-import { BeforeAfterSlider } from './components/BeforeAfterSlider';
-import { LandingPage } from './components/LandingPage';
-import { BillingDashboard } from './components/BillingDashboard';
-import { AuthModal } from './components/AuthModal';
-import { ApiKeyModal } from './components/ApiKeyModal';
+import InputForm from './components/InputForm';
+import LandingPage from './components/LandingPage';
+import BillingDashboard from './components/BillingDashboard';
+import AuthModal from './components/AuthModal';
+import ApiKeyModal from './components/ApiKeyModal';
+import BeforeAfterSlider from './components/BeforeAfterSlider';
 
 import { generateLandscapeVisualization } from './services/geminiService';
 import { createCheckoutSession } from './services/stripeService';
@@ -33,28 +33,28 @@ const STYLES_MAP: Record<string, LandscapingStyle> = {
     name: 'Modern Minimalist',
     description: '',
     promptModifier:
-      'Modern minimalist garden, clean geometry, concrete pavers, structured planting, neutral tones'
+      'Modern minimalist garden, clean geometry, concrete pavers, structured planting'
   },
   tropical: {
     id: 'tropical',
     name: 'Tropical Resort',
     description: '',
     promptModifier:
-      'Tropical resort garden, lush greenery, palms, timber decking, vibrant planting'
+      'Tropical resort garden, lush greenery, palms, timber decking'
   },
   rustic: {
     id: 'rustic',
     name: 'Rustic Cottage',
     description: '',
     promptModifier:
-      'Rustic cottage garden, natural stone, wildflowers, winding paths, cozy atmosphere'
+      'Rustic cottage garden, natural stone paths, wildflowers'
   },
   entertainment: {
     id: 'entertainment',
     name: 'Entertainer',
     description: '',
     promptModifier:
-      'Outdoor entertaining space, large patio, BBQ area, fire pit, seating zones'
+      'Outdoor entertaining space, BBQ, fire pit, seating zones'
   }
 };
 
@@ -130,8 +130,10 @@ function App() {
         style.promptModifier
       );
 
+      const originalUrl = URL.createObjectURL(userInput.image);
+
       setResult({
-        originalImage: userInput.image,
+        originalImage: originalUrl,
         generatedImage,
         promptUsed: userInput.prompt
       });
@@ -159,7 +161,10 @@ function App() {
         <div className="max-w-6xl mx-auto h-16 px-4 flex justify-between items-center">
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => setAppState(AppState.LANDING)}
+            onClick={() => {
+              setAppState(AppState.LANDING);
+              setShowUserMenu(false);
+            }}
           >
             <div className="bg-emerald-600 p-1.5 rounded text-white">
               <Sprout size={22} />
