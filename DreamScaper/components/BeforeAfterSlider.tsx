@@ -10,9 +10,9 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeImage,
   afterImage,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -22,7 +22,9 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   }, []);
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => isDragging && updatePosition(e.clientX);
+    const onMouseMove = (e: MouseEvent) => {
+      if (isDragging) updatePosition(e.clientX);
+    };
     const onMouseUp = () => setIsDragging(false);
 
     window.addEventListener('mousemove', onMouseMove);
@@ -37,7 +39,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[4/3] overflow-hidden rounded-3xl cursor-col-resize bg-slate-100 shadow-2xl"
+      className="relative w-full aspect-[4/3] md:aspect-[16/10] overflow-hidden rounded-3xl shadow-2xl bg-slate-100 cursor-col-resize select-none"
       onMouseDown={(e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -70,7 +72,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         className="absolute top-0 bottom-0 w-1 bg-white shadow-lg"
         style={{ left: `${position}%` }}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-xl">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl">
           <MoveHorizontal size={22} />
         </div>
       </div>
